@@ -14,5 +14,6 @@ float rand_gaussian();
 float norm_float3(const float x, const float y, const float z);
 void index_to_xy (unsigned int, unsigned int, unsigned int *, unsigned int *);
 void xy_to_index (unsigned int *, unsigned int, unsigned int, unsigned int);
+int compare_uint(const void *, const void *);
 
 #endif

@@ -25,4 +25,8 @@ void xy_to_index (unsigned int * idx, unsigned int width, unsigned int x, unsign
     *idx = y * width + x;
 }
 
+int compare_uint(const void * a, const void * b)
+{
+    return * ((unsigned int *) a) - * ((unsigned int *) b);
+}
 

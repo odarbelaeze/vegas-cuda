@@ -71,6 +71,7 @@ system_t * create_lattice(unsigned int width, unsigned short pbc)
             if (x < (width - 1)) sys->neighbors[n_behind + nbh_count++] = i + 1;
             if (y > 0) sys->neighbors[n_behind + nbh_count++] = i - width;
             if (y < (width - 1)) sys->neighbors[n_behind + nbh_count++] = i + width;
+
             sys->limits[i] = n_behind + nbh_count;
         }
     }
@@ -95,6 +96,13 @@ system_t * create_lattice(unsigned int width, unsigned short pbc)
 
             sys->limits[i] = n_behind + 4U;
         }
+    }
+
+    for (unsigned int i = 0U; i < sys->n_sites; i++)
+    {
+        unsigned int n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
+        unsigned int n_items = sys->limits[i] - n_behind;
+        qsort(sys->neighbors + n_behind, n_items, sizeof(unsigned int), compare_uint);
     }
 
     return sys;

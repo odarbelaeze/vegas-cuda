@@ -50,6 +50,36 @@ spin_t * spin_delta(spin_t * a, spin_t * b)
     return delta;
 }
 
+float compute_magnetization(system_t * sys)
+{
+    double acum_x = 0.0;
+    double acum_y = 0.0;
+    double acum_z = 0.0;
+
+    for (unsigned int i = 0U; i < sys->n_sites; i++)
+    {
+        acum_x += sys->spins[i].x;
+        acum_y += sys->spins[i].y;
+        acum_z += sys->spins[i].z;
+    }
+
+    return norm_float3(acum_x, acum_y, acum_z);
+}
+
+float compute_energy(system_t * sys)
+{
+    double ene_accum = 0.0;
+
+    for (unsigned int i = 0U; i < sys->n_sites; i++)
+    {
+        spin_t * field = dipolar_field (sys, i);
+        ene_accum = exchange_interaction(sys->spins + 1, field, 1.0f);
+        free (field);
+    }
+
+    return (float) (0.5 * ene_accum);
+}
+
 void mc_integrate(
         system_t * sys, perturbation_t * perts, float temp,
         float * enes, float * mags, unsigned int time)
@@ -66,7 +96,7 @@ void mc_integrate(
             field = dipolar_field (sys, site);
             delta = spin_delta(sys->spins + site, &(perts[prog].pert));
 
-            float delta_e = exchange_interaction(delta, field, 1.0);
+            float delta_e = exchange_interaction(delta, field, 1.0f);
 
             free(field);
             free(delta);
@@ -88,19 +118,61 @@ void mc_integrate(
             }
         }
 
-        /* TODO: store magnetizations and energies */
+        mags[i] = compute_magnetization(sys);
+        enes[i] = compute_energy(sys);
     }
 }
 
 int main(int argc, char **argv)
 {
-    system_t * sys = create_lattice(1024U, 1U);
     gsl_rng * rng = gsl_rng_alloc (gsl_rng_mt19937);
 
+    unsigned int size = 256U;
+    unsigned int steps = 100U;
+
+    system_t * sys = create_lattice(256U, 1U);
     random_spin_gsl (sys->spins, rng, sys->n_sites);
 
-    printf("%u should be %u\n",
-           sys->n_links, sys->limits[sys->n_sites - 1U]);
+    float * energies;
+    float * magnetizations;
+
+    energies = (float *) malloc (steps * sizeof(float));
+    magnetizations = (float *) malloc (steps * sizeof(float));
+
+    unsigned int n_attempts = sys->n_sites * steps;
+
+    perturbation_t * perturbations;
+    perturbations = (perturbation_t *) malloc (n_attempts * sizeof(perturbation_t));
+    random_preturbations_gsl(perturbations, rng, sys->n_sites, n_attempts);
+
+    mc_integrate(sys, perturbations, 0.5, energies, magnetizations, steps);
+
+    free(energies);
+    free(magnetizations);
+    free(perturbations);
+
+    for (unsigned int i = 1U; i < sys->n_sites; i++)
+    {
+        unsigned int behind = sys->limits[i - 1U];
+        unsigned int front = sys->limits[i];
+        if (front < behind) {
+            printf("**ERROR** %u should be greater than %u", front, behind);
+        }
+    }
+
+    for (unsigned int i = 0U; i < sys->n_links; i++)
+    {
+        unsigned short nbhidx = sys->neighbors[i];
+        if (nbhidx >= sys->n_sites)
+        {
+            printf("**ERROR** %u should be no greater than %u", nbhidx, sys->n_sites);
+        }
+    }
+
+    printf ("%u should be %u\n",
+            sys->n_links, sys->limits[sys->n_sites - 1U]);
+
+    gsl_rng_free (rng);
 
     free(sys->spins);
     free(sys->limits);
