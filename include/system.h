@@ -34,5 +34,9 @@ void random_spins(spin_t *, unsigned int);
 void random_spin_gsl (spin_t *, const gsl_rng *, unsigned int);
 system_t * create_lattice(unsigned int, unsigned short);
 void print_spins_csv(const system_t *);
+spin_t * dipolar_field(system_t *, uint);
+spin_t * spin_delta(spin_t *, spin_t *);
+float compute_magnetization(system_t *);
+float compute_energy(system_t *);
 
 #endif

@@ -11,16 +11,16 @@ set (CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS} -pg")
 
 include_directories("${PROJECT_BINARY_DIR}")
 
-add_library (system src/system.c src/util.c)
+add_library (mcvegas src/mc.c src/system.c src/util.c)
 
-target_link_libraries (system m gsl cblas)
+target_link_libraries (mcvegas m gsl cblas)
 
 include_directories ("${PROJECT_SOURCE_DIR}/include/")
 
 add_executable (vegas src/main.c)
-target_link_libraries (vegas system gsl cblas)
+target_link_libraries (vegas mcvegas gsl cblas)
 
-install (TARGETS system DESTINATION lib)
-install (FILES src/util.h src/system.h DESTINATION include)
+install (TARGETS mcvegas DESTINATION lib)
+install (FILES src/util.h src/system.h src/mc.h DESTINATION include)
 install (TARGETS vegas DESTINATION bin)
 

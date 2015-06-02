@@ -168,3 +168,55 @@ void print_spins_csv(const system_t * sys)
     }
 }
 
+spin_t * dipolar_field(system_t * sys, uint site)
+{
+    spin_t * field = (spin_t *) malloc (sizeof(spin_t));
+    field->x = 0.0f; field->y = 0.0f; field->z = 0.0f;
+    uint behind = (site != 0U) ? sys->limits[site - 1U] : 0U;
+    for (uint i = behind; i < sys->limits[site]; i++)
+    {
+        field->x += sys->spins[sys->neighbors[i]].x;
+        field->y += sys->spins[sys->neighbors[i]].y;
+        field->z += sys->spins[sys->neighbors[i]].z;
+    }
+    return field;
+}
+
+spin_t * spin_delta(spin_t * a, spin_t * b)
+{
+    spin_t * delta = (spin_t *) malloc (sizeof(spin_t));
+    delta->x = b->x - a->x;
+    delta->y = b->y - a->y;
+    delta->z = b->z - a->z;
+    return delta;
+}
+
+float compute_magnetization(system_t * sys)
+{
+    double acum_x = 0.0;
+    double acum_y = 0.0;
+    double acum_z = 0.0;
+
+    for (uint i = 0U; i < sys->n_sites; i++)
+    {
+        acum_x += sys->spins[i].x;
+        acum_y += sys->spins[i].y;
+        acum_z += sys->spins[i].z;
+    }
+
+    return norm_float3(acum_x, acum_y, acum_z);
+}
+
+float compute_energy(system_t * sys)
+{
+    double ene_accum = 0.0;
+
+    for (uint i = 0U; i < sys->n_sites; i++)
+    {
+        spin_t * field = dipolar_field (sys, i);
+        ene_accum = exchange_interaction(sys->spins + 1, field, 1.0f);
+        free (field);
+    }
+
+    return (float) (0.5 * ene_accum);
+}
