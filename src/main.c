@@ -1,8 +1,31 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "system.h"
+
+struct _perturbation {
+    unsigned int site;
+    spin_t pert;
+    float prob;
+};
+
+typedef struct _perturbation perturbation_t;
+
+void random_preturbations_gsl (
+        perturbation_t * perturbations,
+        gsl_rng * rng,
+        unsigned int n_sites,
+        unsigned int count)
+{
+    for (unsigned int i = 0U; i < count; i++)
+    {
+        perturbations[i].site = gsl_rng_uniform_int(rng, n_sites);
+        random_spin_gsl(&(perturbations[i].pert), rng, 1);
+        perturbations[i].prob = gsl_rng_uniform(rng);
+    }
+}
 
 spin_t * dipolar_field(system_t * sys, unsigned int site)
 {
@@ -28,19 +51,20 @@ spin_t * spin_delta(spin_t * a, spin_t * b)
 }
 
 void mc_integrate(
-        system_t * sys, spin_t * pert, unsigned int * sites,
+        system_t * sys, perturbation_t * perts, float temp,
         float * enes, float * mags, unsigned int time)
 {
     for (unsigned int i = 0U; i < time; i++)
     {
         for (unsigned int j = 0U; j < sys->n_sites; j++)
         {
-            unsigned int site = sites[i];
+            unsigned int prog = i * sys->n_sites + j;
+            unsigned int site = perts[prog].site;
             spin_t * delta;
             spin_t * field;
 
             field = dipolar_field (sys, site);
-            delta = spin_delta(sys->spins + site, pert + i * sys->n_sites + j);
+            delta = spin_delta(sys->spins + site, &(perts[prog].pert));
 
             float delta_e = exchange_interaction(delta, field, 1.0);
 
@@ -49,8 +73,22 @@ void mc_integrate(
 
             if (delta_e < 0.0)
             {
+                memcpy ((void *) &(perts[prog].pert),
+                        (void *) sys->spins + site,
+                        sizeof(spin_t));
+            }
+            else
+            {
+                if (perts[prog].prob < exp(- delta_e / temp))
+                {
+                    memcpy ((void *) &(perts[prog].pert),
+                            (void *) sys->spins + site,
+                            sizeof(spin_t));
+                }
             }
         }
+
+        /* TODO: store magnetizations and energies */
     }
 }
 
