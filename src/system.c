@@ -11,9 +11,9 @@ float spin_norm(const spin_t * spin)
     return sqrt(spin->x * spin->x + spin->y * spin->y + spin->z * spin->z);
 }
 
-void random_spins(spin_t * spins, unsigned int count)
+void random_spins(spin_t * spins, uint count)
 {
-    for (unsigned int i = 0U; i < count; i++)
+    for (uint i = 0U; i < count; i++)
     {
         spin_t * spin = spins + i;
         spin->x = rand_gaussian();
@@ -26,9 +26,9 @@ void random_spins(spin_t * spins, unsigned int count)
     }
 }
 
-void random_spin_gsl (spin_t * spins, const gsl_rng * rng, unsigned int count)
+void random_spin_gsl (spin_t * spins, const gsl_rng * rng, uint count)
 {
-    for (unsigned int i = 0U; i < count; i++)
+    for (uint i = 0U; i < count; i++)
     {
         spin_t * spin = spins + i;
         spin->x = gsl_ran_gaussian(rng, 1.0);
@@ -41,7 +41,7 @@ void random_spin_gsl (spin_t * spins, const gsl_rng * rng, unsigned int count)
     }
 }
 
-system_t * create_lattice(unsigned int width, unsigned short pbc)
+system_t * create_lattice(uint width, unsigned short pbc)
 {
     system_t * sys = (system_t *) malloc (sizeof(system_t));
     sys->n_sites = width * width;
@@ -53,17 +53,17 @@ system_t * create_lattice(unsigned int width, unsigned short pbc)
     }
 
     sys->spins = (spin_t *) malloc (sys->n_sites * sizeof(spin_t));
-    sys->limits = (unsigned int *) malloc (sys->n_sites * sizeof(unsigned int));
-    sys->neighbors = (unsigned int *) malloc (sys->n_links * sizeof(unsigned int));
+    sys->limits = (uint *) malloc (sys->n_sites * sizeof(uint));
+    sys->neighbors = (uint *) malloc (sys->n_links * sizeof(uint));
 
     if (pbc == 0U)
     {
-        for (unsigned int i = 0U; i < sys->n_sites; i++)
+        for (uint i = 0U; i < sys->n_sites; i++)
         {
-            unsigned int n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
+            uint n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
 
-            unsigned int x, y;
-            unsigned int nbh_count = 0U;
+            uint x, y;
+            uint nbh_count = 0U;
 
             index_to_xy(i, width, &x, &y);
 
@@ -77,11 +77,11 @@ system_t * create_lattice(unsigned int width, unsigned short pbc)
     }
     else
     {
-        for (unsigned int i = 0U; i < sys->n_sites; i++)
+        for (uint i = 0U; i < sys->n_sites; i++)
         {
-            unsigned int n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
+            uint n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
 
-            unsigned int x, y;
+            uint x, y;
 
             index_to_xy(i, width, &x, &y);
 
@@ -98,11 +98,60 @@ system_t * create_lattice(unsigned int width, unsigned short pbc)
         }
     }
 
-    for (unsigned int i = 0U; i < sys->n_sites; i++)
+    /* Now order the sites according to keys */
+
+    uint * keys = (uint *) malloc (sys->n_sites * sizeof(uint));
+    uint * nw_lims = (uint *) malloc (sys->n_sites * sizeof(uint));
+    uint * nw_neig = (uint *) malloc (sys->n_links * sizeof(uint));
+
+    for (uint i = 0U; i < sys->n_sites; i++)
     {
-        unsigned int n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
-        unsigned int n_items = sys->limits[i] - n_behind;
-        qsort(sys->neighbors + n_behind, n_items, sizeof(unsigned int), compare_uint);
+        uint * x = (uint *) malloc (sizeof(uint));
+        uint * y = (uint *) malloc (sizeof(uint));
+        index_to_xy(i, width, x, y);
+        keys[i] = xy_to_d(width, *x, *y);
+        uint n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
+        uint n_neighs = sys->limits[i] - n_behind;
+        nw_lims[keys[i]] = n_neighs;
+        free(x);
+        free(y);
+    }
+
+
+    /* Integrate the new limits */
+    for (uint i = 0U; i < sys->n_sites; i++)
+    {
+        if (i != 0U)
+        {
+            nw_lims[i] += nw_lims[i - 1];
+        }
+    }
+
+    /* Copy the new neighbors */
+    for (uint i = 0U; i < sys->n_sites; i++)
+    {
+        uint n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
+        uint n_neighs = sys->limits[i] - n_behind;
+        uint site = keys[i];
+        uint start_point = (site != 0U)? nw_lims[site - 1] : 0U;
+        memcpy((void *) nw_neig+ start_point,
+                (void *) sys->neighbors + n_behind,
+                n_neighs * sizeof(uint));
+    }
+
+    free(sys->limits);
+    free(sys->neighbors);
+
+    sys->limits = nw_lims;
+    sys->neighbors = nw_neig;
+
+    free(keys);
+
+    for (uint i = 0U; i < sys->n_sites; i++)
+    {
+        uint n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
+        uint n_items = sys->limits[i] - n_behind;
+        qsort(sys->neighbors + n_behind, n_items, sizeof(uint), compare_uint);
     }
 
     return sys;
@@ -110,7 +159,7 @@ system_t * create_lattice(unsigned int width, unsigned short pbc)
 
 void print_spins_csv(const system_t * sys)
 {
-    for (unsigned int i = 0U; i < sys->n_sites; i++)
+    for (uint i = 0U; i < sys->n_sites; i++)
     {
         printf("%2.8f %2.8f %2.8f\n",
                 sys->spins[i].x,
