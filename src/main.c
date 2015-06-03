@@ -1,8 +1,3 @@
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "system.h"
 #include "mc.h"
 
@@ -11,10 +6,10 @@ int main(int argc, char **argv)
 {
     gsl_rng * rng = gsl_rng_alloc (gsl_rng_mt19937);
 
-    uint size = 512U;
+    uint size = 1024U;
     uint steps = 100U;
 
-    system_t * sys = create_lattice(256U, 1U);
+    system_t * sys = create_lattice(size, 1U);
     random_spin_gsl (sys->spins, rng, sys->n_sites);
 
     float * energies;

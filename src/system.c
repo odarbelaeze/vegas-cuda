@@ -98,7 +98,8 @@ system_t * create_lattice(uint width, unsigned short pbc)
         }
     }
 
-    /* Now order the sites according to keys */
+    /*
+
 
     uint * keys = (uint *) malloc (sys->n_sites * sizeof(uint));
     uint * nw_lims = (uint *) malloc (sys->n_sites * sizeof(uint));
@@ -118,25 +119,25 @@ system_t * create_lattice(uint width, unsigned short pbc)
     }
 
 
-    /* Integrate the new limits */
-    for (uint i = 0U; i < sys->n_sites; i++)
+    for (uint i = 1U; i < sys->n_sites; i++)
     {
-        if (i != 0U)
-        {
-            nw_lims[i] += nw_lims[i - 1];
-        }
+        nw_lims[i] += nw_lims[i - 1];
     }
 
-    /* Copy the new neighbors */
     for (uint i = 0U; i < sys->n_sites; i++)
     {
         uint n_behind = (i != 0U)? sys->limits[i - 1] : 0U;
         uint n_neighs = sys->limits[i] - n_behind;
         uint site = keys[i];
         uint start_point = (site != 0U)? nw_lims[site - 1] : 0U;
-        memcpy((void *) nw_neig+ start_point,
+        memcpy((void *) nw_neig + start_point,
                 (void *) sys->neighbors + n_behind,
                 n_neighs * sizeof(uint));
+    }
+
+    for (uint i = 0U; i < sys->n_links; i++)
+    {
+        nw_neig[i] = keys[nw_neig[i]];
     }
 
     free(sys->limits);
@@ -153,6 +154,8 @@ system_t * create_lattice(uint width, unsigned short pbc)
         uint n_items = sys->limits[i] - n_behind;
         qsort(sys->neighbors + n_behind, n_items, sizeof(uint), compare_uint);
     }
+
+    */
 
     return sys;
 }

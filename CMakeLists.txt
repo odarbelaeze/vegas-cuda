@@ -7,7 +7,7 @@ set (vegas_VERSION_MINOR 1)
 
 set (CMAKE_C_FLAGS "-std=c99")
 
-set (CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS} -pg")
+set (CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS} -lprofiler")
 
 include_directories("${PROJECT_BINARY_DIR}")
 
@@ -20,7 +20,11 @@ include_directories ("${PROJECT_SOURCE_DIR}/include/")
 add_executable (vegas src/main.c)
 target_link_libraries (vegas mcvegas gsl cblas)
 
+find_package (CUDA 7.0 REQUIRED)
+cuda_add_executable (vegas_gpu src/main.cu)
+
 install (TARGETS mcvegas DESTINATION lib)
 install (FILES src/util.h src/system.h src/mc.h DESTINATION include)
 install (TARGETS vegas DESTINATION bin)
+install (TARGETS vegas_gpu DESTINATION bin)
 
