@@ -91,6 +91,14 @@ __global__ void compute_move (
 
 int main(int argc, char ** argv)
 {
-    dim3 blockSize(1, 1, 1);
-    dim3 gridSize(1, 1, 1);
+    uint blockSize = 256;
+    uint gridSize = 100;
+    uint n_threads = gridSize * blockSize;
+    uint seed = 131;
+
+    curandState * d_state;
+    cudaMalloc(&d_state, n_threads * sizeof(curandState));
+    intit_rng <<< gridSize, blockSize >>> (d_state, seed);
+
+    cudaFree(d_state);
 }
