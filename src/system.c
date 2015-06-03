@@ -6,12 +6,12 @@ float exchange_interaction(const spin_t * a, const spin_t * b, float exchange)
     return - exchange * energy;
 }
 
-float spin_norm(const spin_t * spin)
+float spin_norm(const spin_t * const spin)
 {
     return sqrt(spin->x * spin->x + spin->y * spin->y + spin->z * spin->z);
 }
 
-void random_spins(spin_t * spins, uint count)
+void random_spins(spin_t * const spins, uint count)
 {
     for (uint i = 0U; i < count; i++)
     {
@@ -26,7 +26,7 @@ void random_spins(spin_t * spins, uint count)
     }
 }
 
-void random_spin_gsl (spin_t * spins, const gsl_rng * rng, uint count)
+void random_spin_gsl (spin_t * const spins, const gsl_rng * rng, uint count)
 {
     for (uint i = 0U; i < count; i++)
     {
@@ -98,8 +98,6 @@ system_t * create_lattice(uint width, unsigned short pbc)
         }
     }
 
-    /*
-
 
     uint * keys = (uint *) malloc (sys->n_sites * sizeof(uint));
     uint * nw_lims = (uint *) malloc (sys->n_sites * sizeof(uint));
@@ -155,12 +153,10 @@ system_t * create_lattice(uint width, unsigned short pbc)
         qsort(sys->neighbors + n_behind, n_items, sizeof(uint), compare_uint);
     }
 
-    */
-
     return sys;
 }
 
-void print_spins_csv(const system_t * sys)
+void print_spins_csv(const system_t * const sys)
 {
     for (uint i = 0U; i < sys->n_sites; i++)
     {
@@ -171,9 +167,11 @@ void print_spins_csv(const system_t * sys)
     }
 }
 
-spin_t * dipolar_field(system_t * sys, uint site)
+void dipolar_field(
+        spin_t * const __restrict field,
+        const system_t * const __restrict sys,
+        uint site)
 {
-    spin_t * field = (spin_t *) malloc (sizeof(spin_t));
     field->x = 0.0f; field->y = 0.0f; field->z = 0.0f;
     uint behind = (site != 0U) ? sys->limits[site - 1U] : 0U;
     for (uint i = behind; i < sys->limits[site]; i++)
@@ -182,19 +180,19 @@ spin_t * dipolar_field(system_t * sys, uint site)
         field->y += sys->spins[sys->neighbors[i]].y;
         field->z += sys->spins[sys->neighbors[i]].z;
     }
-    return field;
 }
 
-spin_t * spin_delta(spin_t * a, spin_t * b)
+void spin_delta(
+        const spin_t * const __restrict a,
+        const spin_t * const __restrict b,
+        spin_t * const __restrict delta)
 {
-    spin_t * delta = (spin_t *) malloc (sizeof(spin_t));
     delta->x = b->x - a->x;
     delta->y = b->y - a->y;
     delta->z = b->z - a->z;
-    return delta;
 }
 
-float compute_magnetization(system_t * sys)
+float compute_magnetization (const system_t * const sys)
 {
     double acum_x = 0.0;
     double acum_y = 0.0;
@@ -210,15 +208,15 @@ float compute_magnetization(system_t * sys)
     return norm_float3(acum_x, acum_y, acum_z);
 }
 
-float compute_energy(system_t * sys)
+float compute_energy (const system_t * const sys)
 {
     double ene_accum = 0.0;
+    spin_t field;
 
     for (uint i = 0U; i < sys->n_sites; i++)
     {
-        spin_t * field = dipolar_field (sys, i);
-        ene_accum = exchange_interaction(sys->spins + 1, field, 1.0f);
-        free (field);
+        dipolar_field (&field, sys, i);
+        ene_accum = exchange_interaction(sys->spins + 1, &field, 1.0f);
     }
 
     return (float) (0.5 * ene_accum);

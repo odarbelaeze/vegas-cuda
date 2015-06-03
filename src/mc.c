@@ -1,26 +1,28 @@
 #include "mc.h"
 
 
-void mc_integrate (system_t * sys, perturbation_t * perts,
-                   uint time, float temp,
-                   float * enes, float * mags)
+void mc_integrate (
+        const system_t * const __restrict sys,
+        perturbation_t const * const __restrict perts,
+        uint time, float temp,
+        float * const __restrict enes,
+        float * const __restrict mags)
 {
+    spin_t field;
+    spin_t delta;
+
     for (uint i = 0U; i < time; i++)
     {
         for (uint j = 0U; j < sys->n_sites; j++)
         {
             uint prog = i * sys->n_sites + j;
             uint site = perts[prog].site;
-            spin_t * delta;
-            spin_t * field;
 
-            field = dipolar_field (sys, site);
-            delta = spin_delta(sys->spins + site, &(perts[prog].pert));
+            dipolar_field (&field, sys, site);
+            spin_delta(sys->spins + site, &(perts[prog].pert), &delta);
 
-            float delta_e = exchange_interaction(delta, field, 1.0f);
+            float delta_e = exchange_interaction(&delta, &field, 1.0f);
 
-            free(field);
-            free(delta);
 
             if (delta_e < 0.0)
             {
@@ -46,8 +48,8 @@ void mc_integrate (system_t * sys, perturbation_t * perts,
 
 
 void random_preturbations_gsl (
-        perturbation_t * perturbations,
-        gsl_rng * rng,
+        perturbation_t * const __restrict perturbations,
+        const gsl_rng * __restrict rng,
         uint n_sites,
         uint count)
 {
