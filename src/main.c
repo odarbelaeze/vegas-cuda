@@ -53,10 +53,7 @@ int main(int argc, char **argv)
 
     gsl_rng_free (rng);
 
-    free(sys->spins);
-    free(sys->limits);
-    free(sys->neighbors);
-    free(sys);
+    destroy_system(sys);
 
     return 0;
 }

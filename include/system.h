@@ -33,6 +33,7 @@ float spin_norm(const spin_t * const);
 void random_spins(spin_t * const, unsigned int);
 void random_spin_gsl (spin_t * const, const gsl_rng *, unsigned int);
 system_t * create_lattice(unsigned int, unsigned short);
+void destroy_system(system_t *);
 void print_spins_csv(const system_t * const);
 void dipolar_field(
         spin_t * const __restrict,

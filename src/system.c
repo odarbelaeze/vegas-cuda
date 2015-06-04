@@ -156,6 +156,15 @@ system_t * create_lattice(uint width, unsigned short pbc)
     return sys;
 }
 
+void destroy_system(system_t * sys)
+{
+    if (sys == NULL) return;
+    free(sys->spins);
+    free(sys->limits);
+    free(sys->neighbors);
+    free(sys);
+}
+
 void print_spins_csv(const system_t * const sys)
 {
     for (uint i = 0U; i < sys->n_sites; i++)
