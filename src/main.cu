@@ -140,7 +140,7 @@ __global__ void perform_moves (
             /*
                 while (imax >= imin)
                 {
-                    imid = (imax - imin) / 2U;
+                    imid = (imax + imin) / 2U;
                     if (active[imid] == key)
                     {
                         found = true;
