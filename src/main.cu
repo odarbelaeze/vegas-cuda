@@ -166,18 +166,22 @@ __global__ void perform_moves (
 
 inline void fail_on_cuda_error (int line)
 {
+#ifdef CUDA_DEBUG
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess)
     {
         printf("%s on line: %i\n", cudaGetErrorString(error), line);
         exit(-1);
     }
+#endif
 }
 
 inline void fail_on_bad_device_alloc(int line)
 {
+#ifdef CUDA_DEBUG
     printf("bad device alloc! in line: %i", line);
     exit(-1);
+#endif
 }
 
 int main(int argc, char ** argv)
