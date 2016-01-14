@@ -33,9 +33,9 @@ __global__ void intit_rng (curandState * const state, const uint seed)
 __device__ float3 rand_spin (curandState * const state)
 {
     float3 nw_spin;
-    nw_spin.x = curand_uniform(state);
-    nw_spin.y = curand_uniform(state);
-    nw_spin.z = curand_uniform(state);
+    nw_spin.x = curand_normal(state);
+    nw_spin.y = curand_normal(state);
+    nw_spin.z = curand_normal(state);
     float norm = sqrtf(
             nw_spin.x * nw_spin.x +
             nw_spin.y * nw_spin.y +
@@ -164,7 +164,7 @@ __global__ void perform_moves (
     }
 }
 
-void fail_on_cuda_error (int line)
+inline void fail_on_cuda_error (int line)
 {
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess)
@@ -174,7 +174,7 @@ void fail_on_cuda_error (int line)
     }
 }
 
-void fail_on_bad_device_alloc(int line)
+inline void fail_on_bad_device_alloc(int line)
 {
     printf("bad device alloc! in line: %i", line);
     exit(-1);
@@ -193,10 +193,10 @@ int main(int argc, char ** argv)
     cudaMalloc((void **) &d_state, n_threads * sizeof(curandState));
     if (d_state == NULL)
     {
-        fail_on_bad_device_alloc(187);
+        fail_on_bad_device_alloc(__LINE__);
     }
     intit_rng <<< gridSize, blockSize >>> (d_state, seed);
-    fail_on_cuda_error(189);
+    fail_on_cuda_error(__LINE__);
 
     system_t * sys = create_lattice(size, 1U);
     uint n_sites = sys->n_sites;
@@ -220,7 +220,7 @@ int main(int argc, char ** argv)
     cudaMalloc((void **) &d_sites, n_sites * sizeof(site_t));
     if (d_sites == NULL)
     {
-        fail_on_bad_device_alloc(214);
+        fail_on_bad_device_alloc(__LINE__);
     }
 
     cudaMemcpy(d_sites, h_sites, n_sites * sizeof(site_t), cudaMemcpyHostToDevice);
@@ -233,7 +233,7 @@ int main(int argc, char ** argv)
     cudaMalloc((void **) &d_neighbors, sys->n_links * sizeof(uint));
     if (d_sites == NULL)
     {
-        fail_on_bad_device_alloc(227);
+        fail_on_bad_device_alloc(__LINE__);
     }
     cudaMemcpy(d_neighbors, sys->neighbors, sys->n_links * sizeof(uint), cudaMemcpyHostToDevice);
 
@@ -248,12 +248,12 @@ int main(int argc, char ** argv)
     cudaMalloc((void **) &d_results, n_threads * sizeof(result_t));
     if (d_results == NULL)
     {
-        fail_on_bad_device_alloc(239);
+        fail_on_bad_device_alloc(__LINE__);
     }
     cudaMalloc((void **) &d_active, n_threads * sizeof(uint));
     if (d_results == NULL)
     {
-        fail_on_bad_device_alloc(244);
+        fail_on_bad_device_alloc(__LINE__);
     }
 
     /* Launch kernels */
@@ -266,15 +266,15 @@ int main(int argc, char ** argv)
             compute_move <<< gridSize, blockSize >>> (
                     d_results, d_active, d_state, d_sites, d_neighbors,
                     n_sites, 0.5f);
-            fail_on_cuda_error(258);
+            fail_on_cuda_error(__LINE__);
 
             thrust::device_ptr<uint> dt_active = thrust::device_pointer_cast(d_active);
             thrust::sort(dt_active, dt_active + n_threads);
-            fail_on_cuda_error(263);
+            fail_on_cuda_error(__LINE__);
 
             perform_moves <<< gridSize, blockSize >>> (
                     d_results, d_active, d_sites, d_neighbors, n_sites, n_threads);
-            fail_on_cuda_error(266);
+            fail_on_cuda_error(__LINE__);
         }
     }
 
